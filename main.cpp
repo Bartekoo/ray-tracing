@@ -1,5 +1,8 @@
 #include <SDL2/SDL.h>
+#include <cstdlib> // for rand()
+#include <ctime>   // for seeding rand()
 #include <iostream>
+#include <chrono>  // for measuring time
 
 int main(int argc, char* argv[]) {
     // Initialize SDL
@@ -10,7 +13,7 @@ int main(int argc, char* argv[]) {
 
     // Create a window
     SDL_Window* window = SDL_CreateWindow(
-        "3D Raytracer Window",
+        "Random Pixel Drawer",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         800, // width
@@ -34,6 +37,9 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    // Seed the random number generator
+    std::srand(std::time(0));
+
     // Main loop
     bool running = true;
     SDL_Event event;
@@ -44,12 +50,34 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // Clear the screen
-        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Black
-        SDL_RenderClear(renderer);
+        // Start timing
+        auto start = std::chrono::high_resolution_clock::now();
+
+        // Draw random pixels
+        for (int y = 0; y < 600; ++y) {
+            for (int x = 0; x < 800; ++x) {
+                int r = std::rand() % 256;
+                int g = std::rand() % 256;
+                int b = std::rand() % 256;
+
+                // Set the drawing color
+                SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+
+                // Draw the pixel
+                SDL_RenderDrawPoint(renderer, x, y);
+            }
+        }
+
+        // Stop timing
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> duration = end - start;
+        std::cout << "Drawing execution time: " << duration.count() << " ms" << std::endl;
 
         // Present the frame
         SDL_RenderPresent(renderer);
+
+        // Delay to visualize the frame
+        SDL_Delay((100 - duration.count() > 0) ? 100 - duration.count() : 0);
     }
 
     // Clean up
