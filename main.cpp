@@ -5,6 +5,19 @@
 #include <chrono>  // for measuring time
 
 int main(int argc, char* argv[]) {
+    // Check if resolution is provided
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <resolution>" << std::endl;
+        return -1;
+    }
+
+    // Parse resolution from argv[1]
+    int resolution = std::atoi(argv[1]);
+    if (resolution <= 0) {
+        std::cerr << "Invalid resolution: " << argv[1] << std::endl;
+        return -1;
+    }
+
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
@@ -40,10 +53,15 @@ int main(int argc, char* argv[]) {
     // Seed the random number generator
     std::srand(std::time(0));
 
+    // Target frame duration for 10 FPS
+    const int frameDelay = 100; // milliseconds
+
     // Main loop
     bool running = true;
     SDL_Event event;
     while (running) {
+        auto frameStart = std::chrono::high_resolution_clock::now();
+
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
@@ -53,9 +71,10 @@ int main(int argc, char* argv[]) {
         // Start timing
         auto start = std::chrono::high_resolution_clock::now();
 
-        // Draw random pixels
-        for (int y = 0; y < 600; ++y) {
-            for (int x = 0; x < 800; ++x) {
+        // Draw random pixels with specified resolution
+        for (int y = 0; y < 600; y += resolution) {
+            for (int x = 0; x < 800; x += resolution) {
+                // Generate random RGB values
                 int r = std::rand() % 256;
                 int g = std::rand() % 256;
                 int b = std::rand() % 256;
@@ -63,8 +82,9 @@ int main(int argc, char* argv[]) {
                 // Set the drawing color
                 SDL_SetRenderDrawColor(renderer, r, g, b, 255);
 
-                // Draw the pixel
-                SDL_RenderDrawPoint(renderer, x, y);
+                // Draw the rectangle
+                SDL_Rect rect = {x, y, resolution, resolution};
+                SDL_RenderFillRect(renderer, &rect);
             }
         }
 
@@ -76,8 +96,12 @@ int main(int argc, char* argv[]) {
         // Present the frame
         SDL_RenderPresent(renderer);
 
-        // Delay to visualize the frame
-        SDL_Delay((100 - duration.count() > 0) ? 100 - duration.count() : 0);
+        // Frame rate control
+        auto frameEnd = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> frameDuration = frameEnd - frameStart;
+        if (frameDuration.count() < frameDelay) {
+            SDL_Delay(frameDelay - static_cast<int>(frameDuration.count()));
+        }
     }
 
     // Clean up
